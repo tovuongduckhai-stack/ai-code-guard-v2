@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>My Test Product</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <h1>My Test Product</h1>
+  <p>A cool tool for developers</p>
+  <h2>Pricing</h2>
+  <div class="pricing">
+    <div class="plan">
+      <h3>Basic</h3>
+      <p>$5 / month</p>
+      <button onclick="showPopup('basic')">Buy Now</button>
+    </div>
+    <div class="plan">
+      <h3>Pro</h3>
+      <p>$10 / month</p>
+      <button onclick="showPopup('pro')">Buy Now</button>
+    </div>
+    <div class="plan">
+      <h3>Ultra</h3>
+      <p>$20 / month</p>
+      <button onclick="showPopup('ultra')">Buy Now</button>
+    </div>
+  </div>
+  <div id="popup" class="popup" style="display:none;">
+    <div class="popup-content">
+      <span class="close" onclick="closePopup()">&times;</span>
+      <h2>Thank you!</h2>
+      <p>You clicked Buy Now. This is a demo for testing market interest.</p>
+    </div>
+  </div>
+  <script>
+    async function sendEvent(eventName, payload) {
+      await fetch('/log.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event: eventName, payload, product: 'my-test-product' })
+      });
+    }
+    function showPopup(plan) {
+      document.getElementById("popup").style.display = "block";
+      sendEvent('purchase_click', { plan });
+    }
+    function closePopup() {
+      document.getElementById("popup").style.display = "none";
+    }
+  </script>
+</body>
+</html>
