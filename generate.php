@@ -87,7 +87,7 @@ $html = <<<HTML
       sendEvent('purchase_click', { plan });
     }
     function simulateToolClick(toolName) {
-      alert("Simulating Edge Case Analysis workflow... Action logged!");
+      alert("Thank you for testing our core feature! Automated fixing is temporarily offline for a system upgrade. Stay tuned for the upcoming update!");
       sendEvent('click_tool', { tool: toolName });
     }
     function closePopup() {
