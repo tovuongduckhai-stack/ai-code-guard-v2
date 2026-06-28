@@ -1,15 +1,9 @@
 <?php
-echo "=== 🛡️ MVP Factory - Tạo Landing Page Edge Case Guard ===\n\n";
-
-echo "Tên sản phẩm (Ví dụ: AI Code Guard): ";
-$name = trim(fgets(STDIN));
-
-echo "Mô tả ngắn (Ví dụ: Fix hidden logic bugs and edge cases in AI-generated code instantly): ";
-$desc = trim(fgets(STDIN));
-
-echo "Giá Basic ($): "; $basic = trim(fgets(STDIN));
-echo "Giá Pro ($): "; $pro = trim(fgets(STDIN));
-echo "Giá Ultra ($): "; $ultra = trim(fgets(STDIN));
+$name  = isset($_GET['name'])  ? trim($_GET['name'])  : 'AI Code Guard';
+$desc  = isset($_GET['desc'])  ? trim($_GET['desc'])  : 'Fix hidden logic bugs and edge cases instantly';
+$basic = isset($_GET['basic']) ? trim($_GET['basic']) : '19';
+$pro   = isset($_GET['pro'])   ? trim($_GET['pro'])   : '49';
+$ultra = isset($_GET['ultra']) ? trim($_GET['ultra']) : '99';
 
 $slug = strtolower(str_replace(' ', '-', $name));
 $dir = "products/$slug";
