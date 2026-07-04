@@ -8,8 +8,17 @@ $db->exec("CREATE TABLE IF NOT EXISTS events (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 )");
 
+// Tổng events
 $total = $db->query("SELECT COUNT(*) FROM events")->fetchColumn();
 
+// Unique visitors theo IP
+$uniqueVisitors = $db->query("
+    SELECT COUNT(DISTINCT ip) as count 
+    FROM events 
+    WHERE event = 'page_view'
+")->fetchColumn();
+
+// Đếm theo event
 $byEvent = $db->query("
     SELECT event, COUNT(*) as count 
     FROM events 
@@ -17,6 +26,7 @@ $byEvent = $db->query("
     ORDER BY count DESC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
+// Đếm purchase_click theo plan
 $byPlan = $db->query("
     SELECT payload, COUNT(*) as count 
     FROM events 
@@ -25,6 +35,7 @@ $byPlan = $db->query("
     ORDER BY count DESC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
+// Đếm click_tool theo tool
 $byTool = $db->query("
     SELECT payload, COUNT(*) as count 
     FROM events 
@@ -33,6 +44,14 @@ $byTool = $db->query("
     ORDER BY count DESC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
+// Page views
+$pageViews = $db->query("
+    SELECT COUNT(*) as count 
+    FROM events 
+    WHERE event = 'page_view'
+")->fetchColumn();
+
+// 10 events gần nhất
 $recent = $db->query("
     SELECT event, payload, ip, created_at 
     FROM events 
@@ -44,31 +63,40 @@ $recent = $db->query("
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Quality Guard - Validation Dashboard</title>
+  <title>Dashboard</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif; margin: 40px; background: #f8f9fa; color: #202124; }
-    h1 { text-align: center; color: #1a73e8; }
-    .cards { display: flex; gap: 20px; justify-content: center; margin: 30px 0; }
-    .card { background: white; border: 1px solid #dadce0; padding: 20px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-radius: 8px; min-width: 150px; }
-    .card h2 { font-size: 40px; margin: 0; color: #1a73e8; }
-    .card p { margin: 5px 0 0; font-size: 14px; color: #5f6368; font-weight: bold; }
-    table { width: 85%; margin: 20px auto; border-collapse: collapse; background: white; border: 1px solid #dadce0; border-radius: 8px; overflow: hidden; }
-    th, td { padding: 12px; text-align: center; border-bottom: 1px solid #dadce0; }
-    th { background: #f1f3f4; color: #202124; font-weight: bold; }
-    tr:hover { background: #f8f9fa; }
-    h2.section { text-align: center; margin-top: 40px; color: #3c4043; font-size: 22px; }
-    .refresh { display: block; text-align: center; margin: 20px; color: #1a73e8; cursor: pointer; text-decoration: none; font-weight: bold; }
+    body { font-family: Arial, sans-serif; margin: 40px; background: #f9f9f9; color: #333; }
+    h1 { text-align: center; }
+    .cards { display: flex; gap: 20px; justify-content: center; margin: 30px 0; flex-wrap: wrap; }
+    .card { background: white; border: 1px solid #ddd; padding: 20px 40px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.1); border-radius: 8px; }
+    .card h2 { font-size: 48px; margin: 0; color: #0073e6; }
+    .card p { margin: 5px 0 0; font-size: 14px; color: #666; }
+    table { width: 80%; margin: 20px auto; border-collapse: collapse; background: white; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+    th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+    th { background: #333; color: white; }
+    tr:hover { background: #f1f1f1; }
+    h2.section { text-align: center; margin-top: 40px; }
+    .refresh { display: block; text-align: center; margin: 20px; color: #0073e6; cursor: pointer; }
   </style>
 </head>
 <body>
 
-<h1>📊 Quality Guard - Analytics Control Panel</h1>
-<a class="refresh" onclick="location.reload()">🔄 Refresh Metrics</a>
+<h1>📊 Dashboard</h1>
+<a class="refresh" onclick="location.reload()">🔄 Refresh</a>
 
+<!-- Tổng -->
 <div class="cards">
   <div class="card">
     <h2><?= $total ?></h2>
-    <p>Total Metrics Logged</p>
+    <p>Total Events</p>
+  </div>
+  <div class="card">
+    <h2><?= $uniqueVisitors ?></h2>
+    <p>Unique Visitors</p>
+  </div>
+  <div class="card">
+    <h2><?= $pageViews ?></h2>
+    <p>Page Views</p>
   </div>
   <?php
   $purchases = 0; $clicks = 0;
@@ -79,65 +107,58 @@ $recent = $db->query("
   ?>
   <div class="card">
     <h2><?= $purchases ?></h2>
-    <p>Premium Plan Interacts</p>
+    <p>Buy Now Clicks</p>
   </div>
   <div class="card">
     <h2><?= $clicks ?></h2>
-    <p>Core Invisible AI Clicks</p>
+    <p>Tool Link Clicks</p>
   </div>
 </div>
 
-<h2 class="section">💰 Monetization Intent (Buy Now by Plan)</h2>
+<!-- Purchase theo plan -->
+<h2 class="section">💰 Buy Now by Plan</h2>
 <table>
-  <tr><th>Product Version</th><th>Selected Tier</th><th>Total Conversion Clicks</th></tr>
+  <tr><th>Plan</th><th>Clicks</th></tr>
   <?php foreach ($byPlan as $row):
     $payload = json_decode($row['payload'], true);
     $plan = $payload['plan'] ?? $row['payload'];
-    $product = $payload['product'] ?? 'N/A';
   ?>
-  <tr>
-    <td><strong><?= htmlspecialchars($product) ?></strong></td>
-    <td><span style="color: #1a73e8; font-weight: bold;"><?= strtoupper(htmlspecialchars($plan)) ?></span></td>
-    <td><?= $row['count'] ?></td>
-  </tr>
+  <tr><td><?= htmlspecialchars($plan) ?></td><td><?= $row['count'] ?></td></tr>
   <?php endforeach; ?>
   <?php if (empty($byPlan)): ?>
-  <tr><td colspan="3">No interest logged yet</td></tr>
+  <tr><td colspan="2">No data yet</td></tr>
   <?php endif; ?>
 </table>
 
-<h2 class="section">🔗 Interactive Feature Simulation Logs</h2>
+<!-- Click tool -->
+<h2 class="section">🔗 Tool Link Clicks</h2>
 <table>
-  <tr><th>Product Version</th><th>Triggered Action</th><th>Total Interacts</th></tr>
+  <tr><th>Tool</th><th>Clicks</th></tr>
   <?php foreach ($byTool as $row):
     $payload = json_decode($row['payload'], true);
     $tool = $payload['tool'] ?? $row['payload'];
-    $product = $payload['product'] ?? 'N/A';
   ?>
-  <tr>
-    <td><strong><?= htmlspecialchars($product) ?></strong></td>
-    <td><code style="background: #f1f3f4; padding: 4px; border-radius: 4px;"><?= htmlspecialchars($tool) ?></code></td>
-    <td><?= $row['count'] ?></td>
-  </tr>
+  <tr><td><?= htmlspecialchars($tool) ?></td><td><?= $row['count'] ?></td></tr>
   <?php endforeach; ?>
   <?php if (empty($byTool)): ?>
-  <tr><td colspan="3">No core actions triggered yet</td></tr>
+  <tr><td colspan="2">No data yet</td></tr>
   <?php endif; ?>
 </table>
 
-<h2 class="section">🕐 Real-time Event Stream (Last 10 Logs)</h2>
+<!-- Recent events -->
+<h2 class="section">🕐 Recent Events</h2>
 <table>
-  <tr><th>Event Type</th><th>Payload Metadata</th><th>Remote IP</th><th>Timestamp</th></tr>
+  <tr><th>Event</th><th>Payload</th><th>IP</th><th>Time</th></tr>
   <?php foreach ($recent as $row): ?>
   <tr>
-    <td><span style="background: #e8f0fe; color: #1a73e8; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;"><?= htmlspecialchars($row['event']) ?></span></td>
-    <td style="text-align: left; font-family: monospace; font-size: 12px;"><?= htmlspecialchars($row['payload']) ?></td>
+    <td><?= htmlspecialchars($row['event']) ?></td>
+    <td><?= htmlspecialchars($row['payload']) ?></td>
     <td><?= htmlspecialchars($row['ip']) ?></td>
     <td><?= $row['created_at'] ?></td>
   </tr>
   <?php endforeach; ?>
   <?php if (empty($recent)): ?>
-  <tr><td colspan="4">Waiting for incoming traffic data...</td></tr>
+  <tr><td colspan="4">No data yet</td></tr>
   <?php endif; ?>
 </table>
 
