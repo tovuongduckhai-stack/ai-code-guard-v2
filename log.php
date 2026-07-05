@@ -4,8 +4,32 @@ header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST');
 header('Access-Control-Allow-Headers: Content-Type');
 
-$db = new PDO('sqlite:' . __DIR__ . '/data.db');
-$db->exec("CREATE TABLE IF NOT EXISTS events (
+define('TURSO_URL', 'https://ai-code-guard-tovuongduckhai-stack.aws-ap-northeast-1.turso.io');
+define('TURSO_TOKEN', 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3ODMyMzIxODcsImlkIjoiMDE5ZjMwZTgtM2MwMS03OWE2LTk2ZjUtY2Q1ZWJkZjA0N2Q5Iiwia2lkIjoiWFNJbWRySGJxN3JvTzhHYm9rMFNhR1FmaHB0WTlyalgxdnJ4RjVYZTNWayIsInJpZCI6IjBjMTY0YWJiLWQxNTItNDAyNy05NmNmLTRmYzAwNTljOTA5MyJ9.KN9SHrvvM5qkww4Ul37nJ93xGwPpTZWQ6kD47-EVOdqSSq3b3TohkXIorDKGtSAb3cWBEtpKQS1OI5nD4EckAg
+');
+
+function turso_query($sql, $args = []) {
+    $ch = curl_init(TURSO_URL . '/v2/pipeline');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST => true,
+        CURLOPT_HTTPHEADER => [
+            'Content-Type: application/json',
+            'Authorization: Bearer ' . TURSO_TOKEN
+        ],
+        CURLOPT_POSTFIELDS => json_encode([
+            'requests' => [
+                ['type' => 'execute', 'stmt' => ['sql' => $sql, 'args' => $args]],
+                ['type' => 'close']
+            ]
+        ])
+    ]);
+    $result = curl_exec($ch);
+    curl_close($ch);
+    return json_decode($result, true);
+}
+
+turso_query("CREATE TABLE IF NOT EXISTS events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     event TEXT,
     payload TEXT,
@@ -20,11 +44,10 @@ if (!$input || !isset($input['event'])) {
     exit;
 }
 
-$stmt = $db->prepare("INSERT INTO events (event, payload, ip) VALUES (?, ?, ?)");
-$stmt->execute([
-    $input['event'],
-    json_encode($input['payload'] ?? []),
-    $_SERVER['REMOTE_ADDR'] ?? 'unknown'
+turso_query("INSERT INTO events (event, payload, ip) VALUES (?, ?, ?)", [
+    ['type' => 'text', 'value' => $input['event']],
+    ['type' => 'text', 'value' => json_encode($input['payload'] ?? [])],
+    ['type' => 'text', 'value' => $_SERVER['REMOTE_ADDR'] ?? 'unknown']
 ]);
 
 echo json_encode(['status' => 'ok']);
